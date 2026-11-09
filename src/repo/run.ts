@@ -4,9 +4,7 @@ import { existsSync } from "node:fs";
 import type { Command, RunPlan } from "./detect-stack.js";
 import { killTree, openBrowser, run, spawnLongRunning } from "../util/shell.js";
 import { log } from "../util/ui.js";
-
-const URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d{2,5})?[^\s'"`)\]]*/i;
-const PORT_RE = /(?:port|listening on|running on|started on|available at)\D{0,20}(\d{4,5})/i;
+import { parseLocalUrlFromLog, probeLocalhostPort } from "./wait-local-url.js";
 
 export async function runInstall(dir: string, plan: RunPlan): Promise<void> {
   for (const c of plan.install) {
@@ -45,10 +43,8 @@ export function runServer(dir: string, cmd: Command, opts: { open: boolean; know
       process.stdout.write(s);
       buffer = (buffer + s).slice(-4000);
       if (opened) return;
-      const u = buffer.match(URL_RE);
-      if (u) return maybeOpen(u[0].replace("0.0.0.0", "localhost"));
-      const p = buffer.match(PORT_RE);
-      if (p) return maybeOpen(`http://localhost:${p[1]}`);
+      const url = parseLocalUrlFromLog(buffer);
+      if (url) return maybeOpen(url);
     };
     child.stdout?.on("data", onData);
     child.stderr?.on("data", onData);
@@ -59,14 +55,9 @@ export function runServer(dir: string, cmd: Command, opts: { open: boolean; know
       const poll = setInterval(async () => {
         if (opened || Date.now() - started > 90_000) return clearInterval(poll);
         for (const port of opts.knownPorts) {
-          try {
-            const r = await fetch(`http://localhost:${port}/`, { signal: AbortSignal.timeout(800) });
-            if (r.status < 500) {
-              clearInterval(poll);
-              return maybeOpen(`http://localhost:${port}`);
-            }
-          } catch {
-            /* not up yet */
+          if (await probeLocalhostPort(port)) {
+            clearInterval(poll);
+            return maybeOpen(`http://localhost:${port}`);
           }
         }
       }, 1500);
