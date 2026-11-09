@@ -76,6 +76,12 @@ what it saw even if you don't like what it built.
 
 ## AI providers
 
+For local development, copy [`.env.example`](.env.example) to `.env` and set
+`ANTHROPIC_API_KEY` (and any other keys you use). The CLI and MCP server load
+`.env` from your current working directory, or from this repo’s root when you
+run from a checkout. You can still `export ANTHROPIC_API_KEY=…` in the shell;
+existing environment variables are not overwritten.
+
 Site mode needs a model. Repo mode works without one; it just gets smarter with
 one. Whatever key you have is picked up automatically:
 

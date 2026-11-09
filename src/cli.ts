@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { loadProjectEnv } from "./util/load-env.js";
+
+loadProjectEnv();
+
 import { Command } from "commander";
 import pc from "picocolors";
 import { createRequire } from "node:module";
