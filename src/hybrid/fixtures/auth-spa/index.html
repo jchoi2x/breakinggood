@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Auth SPA fixture</title>
+  </head>
+  <body>
+    <div id="app">
+      <section id="login-view">
+        <h1>Sign in</h1>
+        <button type="button" id="login-btn">Log in</button>
+      </section>
+      <section id="app-view" hidden>
+        <h1>Dashboard</h1>
+        <p data-testid="welcome">Welcome back</p>
+      </section>
+    </div>
+    <script>
+      const loginView = document.getElementById("login-view");
+      const appView = document.getElementById("app-view");
+      const loginBtn = document.getElementById("login-btn");
+      loginBtn.addEventListener("click", () => {
+        sessionStorage.setItem("auth", "1");
+        loginView.hidden = true;
+        appView.hidden = false;
+      });
+      if (sessionStorage.getItem("auth") === "1") {
+        loginView.hidden = true;
+        appView.hidden = false;
+      }
+    </script>
+  </body>
+</html>
