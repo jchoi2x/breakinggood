@@ -188,8 +188,9 @@ breakinggood runs the project's toolchain but doesn't install it. Python project
 
 Local checkout **plus** a reference URL: browser workflow capture against your
 dev server (and optional static analysis when you pass `--source-path`), then a
-greenfield frontend rebuild with mocked APIs. Generation calls a model only
-when you pass `--allow-egress`.
+greenfield **Vite + React + PrimeReact** (components) **+ Tailwind** (styling)
+rebuild with mocked APIs. Generation calls a model only when you pass
+`--allow-egress`.
 
 URL-only (no `--source-path`; InteractionMap uses default globs when implemented):
 
