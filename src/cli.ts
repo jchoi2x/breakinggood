@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { loadProjectEnv } from "./util/load-env.js";
+
+loadProjectEnv();
+
 import { Command } from "commander";
 import pc from "picocolors";
 import { createRequire } from "node:module";
@@ -22,7 +26,7 @@ program
   .option("-d, --dir <path>", "target directory (default: derived from the URL)")
   .option("-y, --yes", "don't ask, just go", false)
   .option("--no-open", "don't open the browser")
-  .option("--provider <name>", "ai provider: anthropic | openai | groq | openrouter | gemini | ollama")
+  .option("--provider <name>", "ai provider: anthropic | openai | groq | openrouter | aigateway | gemini | ollama")
   .option("--model <id>", "model id for the provider")
   .option("--no-ai", "repo mode: never call an AI, heuristics only")
   .option("--scan-only", "repo mode: clone + safety scan, then stop", false)
@@ -66,10 +70,15 @@ program
 
 program
   .command("hybrid")
-  .description("hybrid mode: local source path(s) + entry URL → capture workflows and rebuild (experimental)")
+  .description("hybrid mode: local checkout + public URL → workflow capture and rebuild (experimental)")
   .requiredOption("-d, --dir <path>", "local repository root")
-  .requiredOption("--source-path <path>", "source file or glob root relative to --dir (repeatable)", (v, prev: string[]) => [...prev, v], [] as string[])
-  .requiredOption("--url <url>", "public entry URL for workflow context")
+  .option(
+    "--source-path <path>",
+    "optional source root for InteractionMap, relative to --dir (repeatable)",
+    (v, prev: string[]) => [...prev, v],
+    [] as string[],
+  )
+  .requiredOption("--url <url>", "public entry URL for workflow context (any HTTPS page, e.g. example.com)")
   .option("-o, --out <path>", "output directory (default: sibling of --dir)")
   .option("--run <command>", "override dev-server start command (no shell)")
   .option("--capture-url <url>", "localhost URL to open once the dev server is up")

@@ -80,6 +80,8 @@ export interface Capture {
   requests: CapturedRequest[];
   /** Hints about the original stack (framework fingerprints). */
   fingerprints: string[];
+  /** When present, Figma-linked tokens to map onto PrimeReact preset semantics. */
+  figmaTokens?: { name: string; value: string; primeSemantic?: string }[];
 }
 
 export interface CaptureOptions {
@@ -383,6 +385,7 @@ export function extractInPage() {
   if (w.Shopify) fingerprints.push("Shopify");
   if (document.querySelector('meta[name="generator"]')) fingerprints.push("generator: " + (document.querySelector('meta[name="generator"]') as HTMLMetaElement).content);
   if (document.querySelector("[class*='tailwind'], .flex.items-center")) fingerprints.push("Tailwind-style utility classes");
+  if (document.querySelector("[data-pc-name], .p-button, [class*='p-']")) fingerprints.push("PrimeReact");
   if (w.wp || document.querySelector('link[href*="wp-content"]')) fingerprints.push("WordPress");
   if (w.webflow || document.querySelector("[data-wf-site]")) fingerprints.push("Webflow");
   if (document.querySelector("[data-framer-name]")) fingerprints.push("Framer");

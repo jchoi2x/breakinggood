@@ -1,3 +1,7 @@
+import { loadProjectEnv } from "./util/load-env.js";
+
+loadProjectEnv();
+
 /**
  * MCP server so coding agents (Claude Code, Cursor, Codex, …) can use
  * breakinggood as a tool: capture a site, scan a repo, or clone + prepare one.

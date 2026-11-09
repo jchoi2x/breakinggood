@@ -1,7 +1,7 @@
 {
   "name": "breakinggood",
   "version": "0.2.0",
-  "description": "One command to clone, reverse-engineer and run any software from a URL. GitHub repo → safely installed and running. Website → rebuilt as a runnable React project with a mock API.",
+  "description": "One command to clone, reverse-engineer and run any software from a URL. GitHub repo → safely installed and running. Website → rebuilt as a PrimeReact + Vite + React + Tailwind project with a mock API.",
   "type": "module",
   "bin": {
     "breakinggood": "dist/cli.js",
@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    ".env.example",
     "README.md",
     "LICENSE"
   ],

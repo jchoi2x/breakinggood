@@ -61,16 +61,26 @@ page with 40 images and 9 API calls. It came back as 8 components, ~700 lines:
    fonts/colours/radii/type-scale it actually uses (from computed styles, not
    the CSS), the semantic outline, the images, and every XHR/fetch call the page
    made along with the JSON it got back.
-3. Hand all of that to the model and ask for a Vite + React + Tailwind v4
-   project that matches, plus a tiny dependency-free mock server that replays
+3. Hand all of that to the model and ask for a PrimeReact v11 + Vite React +
+   Tailwind v4 project that matches (UI via PrimeReact on a Vite scaffold,
+   Tailwind for utilities), plus a tiny dependency-free mock server that replays
    the captured API responses. So the clone fetches data the same way the real
-   thing did.
+   thing did. Generated apps tweak the Aura preset from captured (or Figma-linked
+   when available) tokens mapped to PrimeReact semantics, and use a five-layer
+   site token stack (global → semantic → component → feature → instance) under
+   `src/theme/` with namespace-scoped CSS variables.
 4. `npm install`, `npm run dev`, open the browser.
 
 The capture is saved in `.breakinggood/` inside the project, so you can look at
 what it saw even if you don't like what it built.
 
 ## AI providers
+
+For local development, copy [`.env.example`](.env.example) to `.env` and set
+`ANTHROPIC_API_KEY` (and any other keys you use). The CLI and MCP server load
+`.env` from your current working directory, or from this repo’s root when you
+run from a checkout. You can still `export ANTHROPIC_API_KEY=…` in the shell;
+existing environment variables are not overwritten.
 
 Site mode needs a model. Repo mode works without one; it just gets smarter with
 one. Whatever key you have is picked up automatically:
@@ -81,8 +91,11 @@ one. Whatever key you have is picked up automatically:
 | `OPENAI_API_KEY`     | OpenAI                                 |
 | `GROQ_API_KEY`       | Groq                                   |
 | `OPENROUTER_API_KEY` | OpenRouter                             |
+| `CLOUDFLARE_ACCOUNT_ID` + gateway token/key | Cloudflare AI Gateway (`aigateway`) |
 | `GEMINI_API_KEY`     | Gemini                                 |
 | `OLLAMA_HOST`        | local Ollama (no key, no vision)       |
+
+**Cloudflare AI Gateway:** set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID` (or `default`), and `CLOUDFLARE_API_TOKEN` for `cf-aig-authorization`. For BYOK through the gateway, also set `AI_GATEWAY_PROVIDER_KEY` (or `OPENAI_API_KEY`). Use `--provider aigateway --model anthropic/claude-sonnet-4-5` (any `provider/model` id Gateway supports). Override the compat base with `AI_GATEWAY_BASE_URL` if needed.
 
 `npx breakinggood providers` shows what's configured. Override with
 `--provider` / `--model`, or `BREAKINGGOOD_PROVIDER` / `BREAKINGGOOD_MODEL`.
@@ -186,19 +199,30 @@ breakinggood runs the project's toolchain but doesn't install it. Python project
 
 ## Hybrid mode (experimental)
 
-Local checkout **plus** a reference URL: static analysis of your source, a real
-browser workflow capture against your dev server, then a greenfield frontend
-rebuild with mocked APIs. Generated output is **Vite + React + PrimeReact**
-(components first) **+ Tailwind CSS v4** (layout/spacing only). Generation
-calls a model only when you pass `--allow-egress`.
+Local checkout **plus** a reference URL: browser workflow capture against your
+dev server (and optional static analysis when you pass `--source-path`), then a
+greenfield **Vite + React + PrimeReact** (components) **+ Tailwind** (styling)
+rebuild with mocked APIs. Generation calls a model only when you pass
+`--allow-egress`.
+
+URL-only (no `--source-path`; InteractionMap uses default globs when implemented):
+
+```bash
+npx breakinggood hybrid \
+  --dir ./my-app \
+  --url https://example.com/app \
+  --run "npm run dev" \
+  --capture-url http://127.0.0.1:5173/
+```
+
+With explicit source roots for InteractionMap:
 
 ```bash
 npx breakinggood hybrid \
   --dir ./my-app \
   --source-path src \
-  --url https://app.example.com/dashboard \
-  --run "npm run dev" \
-  --capture-url http://127.0.0.1:5173/
+  --url https://example.com/dashboard \
+  --run "npm run dev"
 ```
 
 Common flags: `--plan-only`, `--capture-only`, `--max-interactions`,
