@@ -128,7 +128,7 @@ export async function startMcpServer(): Promise<void> {
         noNetworkMutations: input.network_mutations === undefined ? true : !input.network_mutations,
         planOnly: input.plan_only,
         captureOnly: input.capture_only,
-        allowEgress: input.allow_egress,
+        allowEgress: input.allow_egress ?? false,
         sanitize: input.sanitize,
         yes: input.yes,
         open: false,
