@@ -1,5 +1,8 @@
 {
   "name": "react-spa-fixture",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs"
+  }
 }

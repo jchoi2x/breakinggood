@@ -119,6 +119,33 @@ async function launch(): Promise<Browser> {
   );
 }
 
+/** Passive capture from an existing Playwright page (hybrid workflow baseline). */
+export async function captureFromPage(
+  page: Page,
+  url: string,
+  requests: CapturedRequest[] = [],
+): Promise<Capture> {
+  const extracted = await page.evaluate(extractInPage);
+  const screenshotsDesktop = await tiledScreenshots(page, 1440, 1800, 4);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  const screenshotsMobile = await tiledScreenshots(page, 390, 2400, 3);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  return {
+    url,
+    viewport: { width: 1440, height: 900 },
+    screenshotsDesktop,
+    screenshotsMobile,
+    requests: dedupeRequests(requests),
+    ...extracted,
+  };
+}
+
+export async function captureViewportJpeg(page: Page): Promise<string> {
+  const buf = await page.screenshot({ type: "jpeg", quality: 82, fullPage: false });
+  return buf.toString("base64");
+}
+
 export async function captureSite(url: string, opts: CaptureOptions = {}): Promise<Capture> {
   const log = opts.log ?? (() => {});
   const browser = await launch();
@@ -208,7 +235,12 @@ export async function captureSite(url: string, opts: CaptureOptions = {}): Promi
  * Full-page screenshots of long pages blow past model image limits (8000px),
  * so slice the page into tiles from the top. JPEG keeps each under a few hundred KB.
  */
-async function tiledScreenshots(page: Page, width: number, tileHeight: number, maxTiles: number): Promise<string[]> {
+export async function tiledScreenshots(
+  page: Page,
+  width: number,
+  tileHeight: number,
+  maxTiles: number,
+): Promise<string[]> {
   const total = await page.evaluate(() => document.documentElement.scrollHeight);
   const out: string[] = [];
   for (let y = 0; y < total && out.length < maxTiles; y += tileHeight) {
@@ -247,7 +279,7 @@ async function autoScroll(page: Page): Promise<void> {
   });
 }
 
-function dedupeRequests(reqs: CapturedRequest[]): CapturedRequest[] {
+export function dedupeRequests(reqs: CapturedRequest[]): CapturedRequest[] {
   const seen = new Set<string>();
   const out: CapturedRequest[] = [];
   for (const r of reqs) {
@@ -260,7 +292,7 @@ function dedupeRequests(reqs: CapturedRequest[]): CapturedRequest[] {
 }
 
 /** Runs inside the page. Must be self-contained (no imports/closures). */
-function extractInPage() {
+export function extractInPage() {
   const SKIP = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "IFRAME", "LINK", "META", "TEMPLATE"]);
   const KEEP_ATTRS = new Set(["href", "src", "alt", "placeholder", "type", "role", "aria-label", "title"]);
 
