@@ -19,8 +19,9 @@ import { captureSite } from "./site/capture.js";
 import { heuristicPlan, readFacts } from "./repo/detect-stack.js";
 import { scanRepo } from "./repo/scan.js";
 import { prepareEnv } from "./util/env-file.js";
-import { parseTarget } from "./util/detect-url.js";
+import { parseHybridTarget, parseTarget } from "./util/detect-url.js";
 import { run } from "./util/shell.js";
+import { hybridCaptureAndGenerate } from "./hybrid/index.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -78,6 +79,80 @@ export async function startMcpServer(): Promise<void> {
       const plan = heuristicPlan(facts);
       const report = await scanRepo(dir);
       return text({ dir, stack: plan.stack, packageManager: plan.packageManager, install: plan.install.map((c) => c.label), run: plan.run?.label ?? null, ports: plan.ports, confident: plan.confident, findings: report.findings, checked: report.checked });
+    },
+  );
+
+  server.registerTool(
+    "hybrid_rebuild",
+    {
+      title: "Hybrid rebuild from local source + reference URL",
+      description:
+        "Experimental hybrid mode: scan a local checkout, start its dev server, capture interactive workflows " +
+        "in a real browser, and optionally generate a greenfield frontend rebuild with mocked APIs. " +
+        "LLM calls run only when allow_egress is true. Writes artifacts under <out>/.breakinggood/hybrid/ and " +
+        "generated project files when egress is allowed.",
+      inputSchema: {
+        dir: z.string().describe("Local repository root"),
+        source_path: z
+          .array(z.string())
+          .min(1)
+          .describe("Source paths or globs relative to dir (e.g. src)"),
+        url: z.string().url().describe("Public entry URL for workflow context"),
+        out: z.string().optional().describe("Output directory (default: sibling of dir)"),
+        run: z.string().optional().describe('Dev server override, e.g. "npm run dev" (no shell)'),
+        capture_url: z.string().url().optional().describe("localhost URL to open once dev server is up"),
+        max_interactions: z.number().int().positive().optional().default(40),
+        workflow_depth: z.number().int().positive().optional().default(3),
+        network_mutations: z.boolean().optional().describe("Allow non-GET to non-localhost during explore"),
+        plan_only: z.boolean().optional(),
+        capture_only: z.boolean().optional(),
+        allow_egress: z
+          .boolean()
+          .optional()
+          .describe("Allow LLM API calls during generation (off by default)"),
+        sanitize: z.boolean().optional(),
+        yes: z.boolean().optional().describe("Skip install confirmations"),
+        attach_cdp: z.string().optional().describe("Chromium CDP endpoint (ws or http debug URL)"),
+        attach_url_prefix: z.string().optional().describe("Pick attached tab whose URL starts with this prefix"),
+        attach_allowed_origin: z.array(z.string()).optional(),
+        provider: z.string().optional(),
+        model: z.string().optional(),
+      },
+    },
+    async (input) => {
+      const target = parseHybridTarget({
+        dir: input.dir,
+        sourcePath: input.source_path,
+        url: input.url,
+        out: input.out,
+        run: input.run,
+        captureUrl: input.capture_url,
+        maxInteractions: input.max_interactions,
+        workflowDepth: input.workflow_depth,
+        noNetworkMutations: input.network_mutations === undefined ? true : !input.network_mutations,
+        planOnly: input.plan_only,
+        captureOnly: input.capture_only,
+        allowEgress: input.allow_egress ?? false,
+        sanitize: input.sanitize,
+        yes: input.yes,
+        open: false,
+        attachCdp: input.attach_cdp,
+        attachUrlPrefix: input.attach_url_prefix,
+        attachAllowedOrigin: input.attach_allowed_origin,
+        provider: input.provider,
+        model: input.model,
+      });
+      await hybridCaptureAndGenerate(target.options);
+      const out = target.options.out ?? `${path.resolve(target.options.dir)}-hybrid-rebuild`;
+      const artifactRoot = path.join(out, ".breakinggood", "hybrid");
+      return text({
+        out,
+        artifactRoot,
+        interactionMap: path.join(artifactRoot, "interaction-map.json"),
+        workflowTrace: path.join(artifactRoot, "workflow-trace.json"),
+        interactivityReport: path.join(artifactRoot, "interactivity-report.md"),
+        allowEgress: target.options.allowEgress ?? false,
+      });
     },
   );
 
