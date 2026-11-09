@@ -1,0 +1,6 @@
+{
+  "name": "compose-fixture",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

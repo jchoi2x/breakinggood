@@ -1,4 +1,11 @@
-export type Mode = "repo" | "site";
+export type Mode = "repo" | "site" | "hybrid";
+
+export {
+  parseHybridTarget,
+  parseHybridUrlTarget,
+  type ParsedHybridTarget,
+  type HybridCliInput,
+} from "./hybrid-target.js";
 
 export interface ParsedTarget {
   mode: Mode;
