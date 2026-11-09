@@ -61,6 +61,7 @@ test("HybridContext and EgressManifest JSON roundtrip", () => {
     egressManifest: {
       version: 1,
       allowEgress: false,
+      outputStack: "vite-react-primereact-tailwind-v4",
       sourceFiles: [{ path: "src/App.tsx", bytes: 120 }],
       imageCount: 2,
       networkBodyBytes: 0,
@@ -72,6 +73,7 @@ test("HybridContext and EgressManifest JSON roundtrip", () => {
   const manifest: EgressManifest = {
     version: 1,
     allowEgress: true,
+    outputStack: "vite-react-primereact-tailwind-v4",
     sourceFiles: [],
     imageCount: 0,
     networkBodyBytes: 512,
