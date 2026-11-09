@@ -354,6 +354,16 @@ function extractInPage() {
   if (w.wp || document.querySelector('link[href*="wp-content"]')) fingerprints.push("WordPress");
   if (w.webflow || document.querySelector("[data-wf-site]")) fingerprints.push("Webflow");
   if (document.querySelector("[data-framer-name]")) fingerprints.push("Framer");
+  const primeDom = document.querySelector(
+    ".p-component, [data-pc-name], [data-pc-section], .p-button, .p-inputtext, .p-dialog, .p-panel, .p-datatable, .p-menu, .p-menubar, .p-dropdown",
+  );
+  const hasPrimeVue = !!document.querySelector('link[href*="primevue"], script[src*="primevue"]');
+  const hasPrimeReact =
+    !!document.querySelector(
+      'link[href*="primereact"], link[href*="primeicons"], link[href*="@primeuix"], link[href*="primeflex"], script[src*="primereact"]',
+    ) || !!primeDom;
+  if (hasPrimeVue) fingerprints.push("PrimeVue");
+  else if (hasPrimeReact) fingerprints.push("PrimeReact");
 
   const main = document.querySelector("main, #root > *, body > div") as HTMLElement | null;
   const maxWidth = main ? getComputedStyle(main).maxWidth : null;
