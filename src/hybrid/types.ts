@@ -120,8 +120,18 @@ export interface HybridOptions {
   out?: string;
   userRun?: UserRunSpec;
   captureUrl?: string;
+  maxInteractions?: number;
+  workflowDepth?: number;
+  noNetworkMutations?: boolean;
   allowEgress?: boolean;
   planOnly?: boolean;
   captureOnly?: boolean;
   yes?: boolean;
+  sanitize?: boolean;
+  attachCdp?: string;
+  attachUrlPrefix?: string;
+  attachAllowedOrigins?: string[];
+  provider?: string;
+  model?: string;
+  open?: boolean;
 }

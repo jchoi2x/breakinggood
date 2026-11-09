@@ -184,6 +184,27 @@ A site-mode project usually runs its dev server on 5173 and a mock API on 8787.
 **Python or Java not found** (`spawn python3 ENOENT`, `spawn mvn ENOENT`; on Windows `"create .venv" exited with code ...`)
 breakinggood runs the project's toolchain but doesn't install it. Python projects use `python3 -m venv .venv` (`python` on Windows). Java projects use the repo's `mvnw`/`gradlew`, or `mvn`/`gradle`. Install Python 3 (on Windows, tick "Add python.exe to PATH") or a JDK with Maven or Gradle, open a new terminal, and check `python --version` (`python3 --version` on macOS/Linux), `java -version` and `mvn -v`.
 
+## Hybrid mode (experimental)
+
+Local checkout **plus** a reference URL: static analysis of your source, a real
+browser workflow capture against your dev server, then a greenfield frontend
+rebuild with mocked APIs. Generation calls a model only when you pass
+`--allow-egress`.
+
+```bash
+npx breakinggood hybrid \
+  --dir ./my-app \
+  --source-path src \
+  --url https://app.example.com/dashboard \
+  --run "npm run dev" \
+  --capture-url http://127.0.0.1:5173/
+```
+
+Common flags: `--plan-only`, `--capture-only`, `--max-interactions`,
+`--workflow-depth`, `--sanitize`, `-y`. Optional CDP attach:
+`--attach-cdp`, `--attach-url-prefix`, `--attach-allowed-origin` (or
+`BREAKINGGOOD_CDP_URL`). Artifacts land under `<output>/.breakinggood/hybrid/`.
+
 ## Hacking on it
 
 ```
