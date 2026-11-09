@@ -91,8 +91,11 @@ one. Whatever key you have is picked up automatically:
 | `OPENAI_API_KEY`     | OpenAI                                 |
 | `GROQ_API_KEY`       | Groq                                   |
 | `OPENROUTER_API_KEY` | OpenRouter                             |
+| `CLOUDFLARE_ACCOUNT_ID` + gateway token/key | Cloudflare AI Gateway (`aigateway`) |
 | `GEMINI_API_KEY`     | Gemini                                 |
 | `OLLAMA_HOST`        | local Ollama (no key, no vision)       |
+
+**Cloudflare AI Gateway:** set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID` (or `default`), and `CLOUDFLARE_API_TOKEN` for `cf-aig-authorization`. For BYOK through the gateway, also set `AI_GATEWAY_PROVIDER_KEY` (or `OPENAI_API_KEY`). Use `--provider aigateway --model anthropic/claude-sonnet-4-5` (any `provider/model` id Gateway supports). Override the compat base with `AI_GATEWAY_BASE_URL` if needed.
 
 `npx breakinggood providers` shows what's configured. Override with
 `--provider` / `--model`, or `BREAKINGGOOD_PROVIDER` / `BREAKINGGOOD_MODEL`.

@@ -13,6 +13,7 @@ export class OpenAICompatibleProvider implements Provider {
     private baseUrl: string,
     private apiKey: string | undefined,
     supportsImages = true,
+    private extraHeaders: Record<string, string> = {},
   ) {
     this.supportsImages = supportsImages;
   }
@@ -43,6 +44,7 @@ export class OpenAICompatibleProvider implements Provider {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        ...this.extraHeaders,
         ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
       },
       body: JSON.stringify(body),

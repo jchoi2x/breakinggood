@@ -25,7 +25,7 @@ program
   .option("-d, --dir <path>", "target directory (default: derived from the URL)")
   .option("-y, --yes", "don't ask, just go", false)
   .option("--no-open", "don't open the browser")
-  .option("--provider <name>", "ai provider: anthropic | openai | groq | openrouter | gemini | ollama")
+  .option("--provider <name>", "ai provider: anthropic | openai | groq | openrouter | aigateway | gemini | ollama")
   .option("--model <id>", "model id for the provider")
   .option("--no-ai", "repo mode: never call an AI, heuristics only")
   .option("--scan-only", "repo mode: clone + safety scan, then stop", false)

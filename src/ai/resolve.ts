@@ -12,6 +12,38 @@ interface Candidate {
 
 const env = (k: string) => process.env[k]?.trim() || undefined;
 
+function aiGatewayBaseUrl(): string | undefined {
+  const account = env("CLOUDFLARE_ACCOUNT_ID");
+  if (!account) return undefined;
+  const override = env("AI_GATEWAY_BASE_URL");
+  if (override) return override.replace(/\/$/, "");
+  const gateway = env("CLOUDFLARE_AI_GATEWAY_ID") ?? "default";
+  return `https://gateway.ai.cloudflare.com/v1/${account}/${gateway}/compat`;
+}
+
+function aiGatewayAvailable(): boolean {
+  if (!aiGatewayBaseUrl()) return false;
+  return !!(env("CLOUDFLARE_API_TOKEN") || env("AI_GATEWAY_PROVIDER_KEY") || env("OPENAI_API_KEY"));
+}
+
+function makeAiGateway(model?: string): Provider {
+  const base = aiGatewayBaseUrl()!;
+  const cfToken = env("CLOUDFLARE_API_TOKEN");
+  const providerKey = env("AI_GATEWAY_PROVIDER_KEY") ?? env("OPENAI_API_KEY");
+  const headers: Record<string, string> = {};
+  if (cfToken) headers["cf-aig-authorization"] = `Bearer ${cfToken}`;
+  const apiKey = providerKey ?? cfToken;
+  const defaultModel = env("AI_GATEWAY_DEFAULT_MODEL") ?? "anthropic/claude-sonnet-4-5";
+  return new OpenAICompatibleProvider(
+    "aigateway",
+    model ?? defaultModel,
+    base,
+    apiKey,
+    true,
+    headers,
+  );
+}
+
 const CANDIDATES: Candidate[] = [
   {
     id: "anthropic",
@@ -55,6 +87,12 @@ const CANDIDATES: Candidate[] = [
         "https://openrouter.ai/api/v1",
         env("OPENROUTER_API_KEY"),
       ),
+  },
+  {
+    id: "aigateway",
+    available: aiGatewayAvailable,
+    defaultModel: "anthropic/claude-sonnet-4-5",
+    make: (m) => makeAiGateway(m),
   },
   {
     id: "gemini",

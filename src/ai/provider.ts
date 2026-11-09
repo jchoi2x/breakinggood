@@ -5,6 +5,7 @@
  *   OPENAI_API_KEY     → OpenAI
  *   GROQ_API_KEY       → Groq      (OpenAI-compatible)
  *   OPENROUTER_API_KEY → OpenRouter(OpenAI-compatible)
+ *   CLOUDFLARE_*       → Cloudflare AI Gateway (OpenAI-compatible compat URL)
  *   GEMINI_API_KEY     → Google Gemini
  *   OLLAMA_HOST        → local Ollama (OpenAI-compatible, no key)
  *
