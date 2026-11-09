@@ -80,6 +80,8 @@ export interface Capture {
   requests: CapturedRequest[];
   /** Hints about the original stack (framework fingerprints). */
   fingerprints: string[];
+  /** When present, Figma-linked tokens to map onto PrimeReact preset semantics. */
+  figmaTokens?: { name: string; value: string; primeSemantic?: string }[];
 }
 
 export interface CaptureOptions {

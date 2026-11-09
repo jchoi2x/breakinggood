@@ -61,10 +61,14 @@ page with 40 images and 9 API calls. It came back as 8 components, ~700 lines:
    fonts/colours/radii/type-scale it actually uses (from computed styles, not
    the CSS), the semantic outline, the images, and every XHR/fetch call the page
    made along with the JSON it got back.
-3. Hand all of that to the model and ask for a PrimeReact 11 + Vite + React +
-   Tailwind v4 project that matches, plus a tiny dependency-free mock server that replays
+3. Hand all of that to the model and ask for a PrimeReact v11 + Vite React +
+   Tailwind v4 project that matches (UI via PrimeReact on a Vite scaffold,
+   Tailwind for utilities), plus a tiny dependency-free mock server that replays
    the captured API responses. So the clone fetches data the same way the real
-   thing did.
+   thing did. Generated apps tweak the Aura preset from captured (or Figma-linked
+   when available) tokens mapped to PrimeReact semantics, and use a five-layer
+   site token stack (global → semantic → component → feature → instance) under
+   `src/theme/` with namespace-scoped CSS variables.
 4. `npm install`, `npm run dev`, open the browser.
 
 The capture is saved in `.breakinggood/` inside the project, so you can look at
