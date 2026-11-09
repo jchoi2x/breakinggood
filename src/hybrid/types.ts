@@ -115,6 +115,7 @@ export function hybridArtifactPaths(outputDir: string): HybridArtifacts {
 
 export interface HybridOptions {
   dir: string;
+  /** Optional roots for InteractionMap static analysis (empty = default globs in later tasks). */
   sourcePaths: string[];
   url: string;
   out?: string;

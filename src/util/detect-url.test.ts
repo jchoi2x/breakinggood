@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseTarget } from "./detect-url.js";
+import { parseHybridUrlTarget, parseTarget } from "./detect-url.js";
+import path from "node:path";
 import { parseFileBlocks } from "../ai/files.js";
 
 test("github https url → repo", () => {
@@ -27,6 +28,13 @@ test("website → site", () => {
   assert.equal(t.mode, "site");
   assert.equal(t.name, "stripe-clone");
   assert.equal(t.url, "https://stripe.com/pricing");
+});
+
+test("parseHybridUrlTarget via detect-url: URL-only hybrid parse", () => {
+  const dir = path.resolve("src/hybrid/fixtures/run-docs/minimal-node");
+  const t = parseHybridUrlTarget("https://example.com/", dir);
+  assert.equal(t.mode, "hybrid");
+  assert.deepEqual(t.options.sourcePaths, []);
 });
 
 test("file blocks parse, with and without fences", () => {

@@ -66,10 +66,15 @@ program
 
 program
   .command("hybrid")
-  .description("hybrid mode: local source path(s) + entry URL → capture workflows and rebuild (experimental)")
+  .description("hybrid mode: local checkout + public URL → workflow capture and rebuild (experimental)")
   .requiredOption("-d, --dir <path>", "local repository root")
-  .requiredOption("--source-path <path>", "source file or glob root relative to --dir (repeatable)", (v, prev: string[]) => [...prev, v], [] as string[])
-  .requiredOption("--url <url>", "public entry URL for workflow context")
+  .option(
+    "--source-path <path>",
+    "optional source root for InteractionMap, relative to --dir (repeatable)",
+    (v, prev: string[]) => [...prev, v],
+    [] as string[],
+  )
+  .requiredOption("--url <url>", "public entry URL for workflow context (any HTTPS page, e.g. example.com)")
   .option("-o, --out <path>", "output directory (default: sibling of --dir)")
   .option("--run <command>", "override dev-server start command (no shell)")
   .option("--capture-url <url>", "localhost URL to open once the dev server is up")

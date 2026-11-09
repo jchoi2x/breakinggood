@@ -32,6 +32,48 @@ export interface ParsedHybridTarget {
   options: HybridOptions;
 }
 
+/**
+ * Hybrid entry from a public page URL (URL / site mode). `--source-path` is
+ * optional; omit it to skip static InteractionMap roots (capture-only workflows).
+ */
+export function parseHybridUrlTarget(
+  pageUrl: string,
+  dir: string,
+  extra: Omit<HybridCliInput, "url" | "dir" | "sourcePath"> & { sourcePath?: string[] } = {},
+): ParsedHybridTarget {
+  const target = parsePageUrlForHybrid(pageUrl);
+  return parseHybridTarget({
+    dir,
+    url: target.url,
+    sourcePath: extra.sourcePath ?? [],
+    ...extra,
+  });
+}
+
+function parsePageUrlForHybrid(input: string): { url: string } {
+  let raw = input.trim();
+  if (!/^[a-z]+:\/\//i.test(raw) && !raw.startsWith("git@")) raw = "https://" + raw;
+
+  if (/^git@/.test(raw) || /\.git(?:[#?]|$)/i.test(raw)) {
+    throw new Error("hybrid URL mode expects a public page URL, not a git remote");
+  }
+
+  const u = new URL(raw);
+  const host = u.hostname.toLowerCase();
+  const GIT_HOSTS = ["github.com", "gitlab.com", "bitbucket.org", "codeberg.org", "gitea.com"];
+  if (GIT_HOSTS.includes(host)) {
+    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    if (parts.length >= 2 && !parts.some((p) => /\.(html?|php|aspx?)$/i.test(p))) {
+      const [, repoRaw, kind] = parts;
+      if (repoRaw && kind !== "blob" && kind !== "raw") {
+        throw new Error("hybrid URL mode expects a public page URL, not a repository URL");
+      }
+    }
+  }
+
+  return { url: u.toString() };
+}
+
 /** Validate hybrid CLI flags and normalize paths relative to `--dir`. */
 export function parseHybridTarget(input: HybridCliInput): ParsedHybridTarget {
   const dir = path.resolve(input.dir);
@@ -39,11 +81,7 @@ export function parseHybridTarget(input: HybridCliInput): ParsedHybridTarget {
     throw new Error(`--dir does not exist: ${dir}`);
   }
 
-  const sourcePaths = input.sourcePath?.length ? input.sourcePath : [];
-  if (sourcePaths.length === 0) {
-    throw new Error("hybrid mode requires at least one --source-path");
-  }
-
+  const sourcePaths = input.sourcePath ?? [];
   const normalizedSources = sourcePaths.map((sp) => resolveSourceUnderDir(dir, sp));
 
   let pageUrl: URL;

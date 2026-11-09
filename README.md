@@ -186,18 +186,29 @@ breakinggood runs the project's toolchain but doesn't install it. Python project
 
 ## Hybrid mode (experimental)
 
-Local checkout **plus** a reference URL: static analysis of your source, a real
-browser workflow capture against your dev server, then a greenfield frontend
-rebuild with mocked APIs. Generation calls a model only when you pass
-`--allow-egress`.
+Local checkout **plus** a reference URL: browser workflow capture against your
+dev server (and optional static analysis when you pass `--source-path`), then a
+greenfield frontend rebuild with mocked APIs. Generation calls a model only
+when you pass `--allow-egress`.
+
+URL-only (no `--source-path`; InteractionMap uses default globs when implemented):
+
+```bash
+npx breakinggood hybrid \
+  --dir ./my-app \
+  --url https://example.com/app \
+  --run "npm run dev" \
+  --capture-url http://127.0.0.1:5173/
+```
+
+With explicit source roots for InteractionMap:
 
 ```bash
 npx breakinggood hybrid \
   --dir ./my-app \
   --source-path src \
-  --url https://app.example.com/dashboard \
-  --run "npm run dev" \
-  --capture-url http://127.0.0.1:5173/
+  --url https://example.com/dashboard \
+  --run "npm run dev"
 ```
 
 Common flags: `--plan-only`, `--capture-only`, `--max-interactions`,
