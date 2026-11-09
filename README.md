@@ -188,8 +188,13 @@ breakinggood runs the project's toolchain but doesn't install it. Python project
 
 Local checkout **plus** a reference URL: static analysis of your source, a real
 browser workflow capture against your dev server, then a greenfield frontend
-rebuild with mocked APIs. Generation calls a model only when you pass
-`--allow-egress`.
+rebuild with mocked APIs.
+
+**Model egress is opt-in.** Hybrid generation sends source excerpts, captures,
+and screenshots to your configured AI provider. Nothing is sent unless you pass
+`--allow-egress`. The run still writes `egress-manifest.json` (and applies
+redaction) when generation is allowed. Use `--plan-only` or `--capture-only` to
+work entirely offline.
 
 ```bash
 npx breakinggood hybrid \
@@ -197,13 +202,48 @@ npx breakinggood hybrid \
   --source-path src \
   --url https://app.example.com/dashboard \
   --run "npm run dev" \
-  --capture-url http://127.0.0.1:5173/
+  --capture-url http://127.0.0.1:5173/ \
+  --allow-egress
 ```
 
 Common flags: `--plan-only`, `--capture-only`, `--max-interactions`,
-`--workflow-depth`, `--sanitize`, `-y`. Optional CDP attach:
-`--attach-cdp`, `--attach-url-prefix`, `--attach-allowed-origin` (or
-`BREAKINGGOOD_CDP_URL`). Artifacts land under `<output>/.breakinggood/hybrid/`.
+`--workflow-depth`, `--sanitize`, `-y`. Output defaults to a sibling folder
+`<dir>-hybrid-rebuild`; override with `--out`. Artifacts land under
+`<output>/.breakinggood/hybrid/` (`interaction-map.json`, `workflow-trace.json`,
+`interactivity-report.md`). Generated projects include `workflows.json` and
+`scripts/hybrid-verify.mjs`; after generation, breakinggood can replay workflows
+against the new dev server and append replay parity to `interactivity-report.md`.
+Set `BREAKINGGOOD_SKIP_HYBRID_REPLAY=1` to skip that step.
+
+### Attach an existing signed-in browser (CDP)
+
+To explore an app you already logged into, start Chromium with a debugging port
+and pass `--attach-cdp` (or set `BREAKINGGOOD_CDP_URL`). breakinggood attaches
+with Playwright, **does not** close your browser, and **never** exports cookies
+or `storageState` to disk or to the model.
+
+```bash
+# macOS / Linux — example: dedicated Chrome profile + debug port
+google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/bg-cdp-profile
+
+npx breakinggood hybrid \
+  --dir ./my-app \
+  --source-path src \
+  --url https://app.example.com/ \
+  --attach-cdp http://127.0.0.1:9222 \
+  --attach-url-prefix https://app.example.com/ \
+  --attach-allowed-origin https://app.example.com \
+  --capture-only \
+  -y
+```
+
+Use `--attach-url-prefix` when multiple tabs are open so the right one is
+selected. Restrict navigation with repeatable `--attach-allowed-origin`.
+
+### MCP tool
+
+The MCP server exposes `hybrid_rebuild` with the same options as the CLI (snake_case
+field names). Set `allow_egress: true` only when you intend to call an AI provider.
 
 ## Hacking on it
 

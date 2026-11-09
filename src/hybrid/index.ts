@@ -17,6 +17,7 @@ import type { WorkflowTrace } from "./types.js";
 import { resolveRunPlan } from "./user-run.js";
 import { planWorkflow } from "./workflow-planner.js";
 import { runWorkflowCapture } from "./workflow-runner.js";
+import { verifyGeneratedReplay } from "./verify-replay.js";
 
 function defaultOutDir(dir: string): string {
   return `${dir}-hybrid-rebuild`;
@@ -104,6 +105,11 @@ async function runHybridGeneration(
     provider: provider.name,
     model: provider.model,
     fileCount: files.size,
+  });
+  await verifyGeneratedReplay({
+    outDir: out,
+    workflowTrace: trace,
+    reportPath: artifacts.interactivityReport,
   });
 }
 

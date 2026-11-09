@@ -30,7 +30,7 @@ export interface WorkflowCaptureResult {
   baseline: Capture;
 }
 
-function locatorFor(page: Page, selector: string) {
+export function locatorFor(page: Page, selector: string) {
   if (selector.startsWith("text=")) {
     const raw = selector.slice("text=".length);
     const text = JSON.parse(raw) as string;
