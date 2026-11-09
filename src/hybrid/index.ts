@@ -1,13 +1,19 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { resolveProvider } from "../ai/resolve.js";
+import { NoProviderError } from "../ai/provider.js";
 import { readFacts } from "../repo/detect-stack.js";
 import { runInstall } from "../repo/run.js";
 import { scanRepo } from "../repo/scan.js";
 import { startDevServer } from "../repo/run-background.js";
+import { generateHybridProject } from "../site/generate-hybrid.js";
+import type { Capture } from "../site/capture.js";
+import { buildEgressManifest, readSourceExcerpts, requireEgress } from "./egress.js";
 import { buildInteractionMap } from "./interaction-map.js";
 import { discoverRunDocs } from "./run-discovery.js";
 import type { HybridOptions } from "./types.js";
 import { hybridArtifactPaths } from "./types.js";
+import type { WorkflowTrace } from "./types.js";
 import { resolveRunPlan } from "./user-run.js";
 import { planWorkflow } from "./workflow-planner.js";
 import { runWorkflowCapture } from "./workflow-runner.js";
@@ -20,13 +26,17 @@ function writeInteractivityReport(
   file: string,
   traceSteps: { status: string }[],
   attempted: number,
+  generation?: { provider: string; model: string; fileCount: number },
 ): void {
   const verified = traceSteps.filter((s) => s.status === "verified").length;
   const unverified = traceSteps.filter((s) => s.status === "unverified").length;
   const partial = traceSteps.filter((s) => s.status === "partial").length;
+  const genLine = generation
+    ? `\nGeneration ran with **${generation.provider}/${generation.model}** (${generation.fileCount} files written to output root).\n`
+    : "\nGeneration was not run (use \`--allow-egress\` and a configured provider to generate).\n";
   const body = `# Interactivity report
 
-Hybrid workflow capture (generation not run in this phase).
+Hybrid workflow capture.${genLine}
 
 | Metric | Count |
 |--------|------:|
@@ -38,6 +48,63 @@ Hybrid workflow capture (generation not run in this phase).
 Detailed step status is in \`workflow-trace.json\`.
 `;
   writeFileSync(file, body);
+}
+
+function writeGeneratedProject(outDir: string, files: Map<string, string>): void {
+  for (const [rel, content] of files) {
+    const full = path.join(outDir, rel);
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, content);
+  }
+}
+
+async function runHybridGeneration(
+  opts: HybridOptions,
+  out: string,
+  dir: string,
+  interactionMap: ReturnType<typeof buildInteractionMap>,
+  trace: WorkflowTrace,
+  baseline: Capture,
+  plan: Awaited<ReturnType<typeof resolveRunPlan>>,
+  artifacts: ReturnType<typeof hybridArtifactPaths>,
+  attempted: number,
+): Promise<void> {
+  requireEgress(opts);
+  const provider = resolveProvider({ provider: opts.provider, model: opts.model });
+  if (!provider) throw new NoProviderError();
+
+  const sourceExcerpts = readSourceExcerpts(dir, interactionMap);
+  const manifest = buildEgressManifest({
+    allowEgress: true,
+    repoRoot: dir,
+    interactionMap,
+    baseline,
+    trace,
+  });
+  writeFileSync(artifacts.egressManifest, JSON.stringify(manifest, null, 2));
+
+  const projectName = path.basename(out);
+  const files = await generateHybridProject(
+    provider,
+    projectName,
+    {
+      entryUrl: opts.url,
+      interactionMap,
+      trace,
+      baseline,
+      runCommand: plan.run?.label,
+      runReasons: plan.reasons,
+      sourceExcerpts,
+    },
+    { sanitize: opts.sanitize ?? false },
+  );
+
+  writeGeneratedProject(out, files);
+  writeInteractivityReport(artifacts.interactivityReport, trace.steps, attempted, {
+    provider: provider.name,
+    model: provider.model,
+    fileCount: files.size,
+  });
 }
 
 function assertScanAllowed(
@@ -124,10 +191,11 @@ export async function hybridCaptureAndGenerate(opts: HybridOptions): Promise<voi
 
     writeFileSync(artifacts.workflowTrace, JSON.stringify(trace, null, 2));
     writeFileSync(path.join(artifacts.root, "baseline-capture.json"), JSON.stringify(baseline, null, 2));
-    writeInteractivityReport(artifacts.interactivityReport, trace.steps, attempted);
 
     if (!opts.captureOnly && opts.allowEgress) {
-      throw new Error("hybrid generation is not implemented yet — use --capture-only");
+      await runHybridGeneration(opts, out, dir, interactionMap, trace, baseline, plan, artifacts, attempted);
+    } else {
+      writeInteractivityReport(artifacts.interactivityReport, trace.steps, attempted);
     }
   } finally {
     server.kill();
