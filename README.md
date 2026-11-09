@@ -188,8 +188,9 @@ breakinggood runs the project's toolchain but doesn't install it. Python project
 
 Local checkout **plus** a reference URL: static analysis of your source, a real
 browser workflow capture against your dev server, then a greenfield frontend
-rebuild with mocked APIs. Generation calls a model only when you pass
-`--allow-egress`.
+rebuild with mocked APIs. Generated output is **Vite + React + PrimeReact**
+(components first) **+ Tailwind CSS v4** (layout/spacing only). Generation
+calls a model only when you pass `--allow-egress`.
 
 ```bash
 npx breakinggood hybrid \

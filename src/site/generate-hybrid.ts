@@ -1,6 +1,10 @@
 import type { Provider } from "../ai/provider.js";
 import { FILE_FORMAT_INSTRUCTIONS, parseFileBlocks } from "../ai/files.js";
 import { redactForEgress } from "../hybrid/egress.js";
+import {
+  HYBRID_OUTPUT_STACK_LABEL,
+  HYBRID_UI_STACK_POLICY,
+} from "../hybrid/stack-spec.js";
 import type { InteractionMap, WorkflowTrace } from "../hybrid/types.js";
 import type { Capture } from "./capture.js";
 
@@ -19,23 +23,26 @@ export interface GenerateHybridOptions {
   onChunk?: (t: string) => void;
 }
 
-const SYSTEM = `You are a senior front-end engineer rebuilding a local React app from:
+export const HYBRID_GENERATION_SYSTEM = `You are a senior front-end engineer rebuilding a local React app from:
 - a static InteractionMap (source handlers and routes),
 - a real-browser WorkflowTrace (observed UI steps),
 - a baseline visual/DOM capture at the dev-server URL.
 
-Produce a complete, runnable **frontend-only** Vite + React 18 + PrimeReact + Tailwind CSS v4 project that implements the **observed workflows** and aligns UI behavior with the source handlers where possible.
+Scaffold a complete, runnable **frontend-only** ${HYBRID_OUTPUT_STACK_LABEL} project (same breakinggood greenfield stack as site mode, plus PrimeReact). Implement **observed workflows**; align behavior with source handlers where possible. Output **.jsx** files only — greenfield Vite scaffold, not a TypeScript port of the original repo.
+
+## UI stack (order matters)
+${HYBRID_UI_STACK_POLICY}
 
 Hard requirements:
-- Files to output: package.json, index.html, vite.config.js, src/main.jsx, src/index.css, src/App.jsx, components under src/components/, mock/db.json, mock/server.js, README.md.
-- package.json: "type": "module", scripts: {"dev": "concurrently \\"vite\\" \\"node mock/server.js\\"", "build": "vite build", "preview": "vite preview", "mock": "node mock/server.js"}; dependencies react, react-dom, @primereact/ui, @primereact/core, primereact ^11, @primeuix/themes, @primeicons/react; devDependencies vite, @vitejs/plugin-react, tailwindcss, @tailwindcss/vite, concurrently.
-- src/main.jsx: PrimeReactProvider from @primereact/core with Aura from @primeuix/themes/aura; Tailwind via @import "tailwindcss" in index.css.
-- vite.config.js proxies "/api" to http://localhost:8787.
-- mock/server.js serves captured local API traffic from mock/db.json (dependency-free Node http on port 8787).
-- **Do not** generate backend/server production code — mocks only.
-- Mark flows that were **unverified** or **partial** in workflow trace in README.md under "## Unverified workflows".
-- Use captured design tokens, outline, and screenshots to match layout; implement navigation/button flows seen in the trace.
-- No TypeScript in output. Stay compact; use .map() for repeated lists.
+- Files to output: package.json, index.html, vite.config.js, src/main.jsx, src/index.css, src/App.jsx, one file per major section in src/components/, mock/db.json, mock/server.js, README.md.
+- package.json: name from context, "type": "module", scripts: {"dev": "concurrently \\"vite\\" \\"node mock/server.js\\"", "build": "vite build", "preview": "vite preview", "mock": "node mock/server.js"}; dependencies react, react-dom, @primereact/ui, @primereact/core, primereact ^11, @primeuix/themes, @primeicons/react; devDependencies vite, @vitejs/plugin-react, tailwindcss, @tailwindcss/vite, concurrently. Use caret ranges and real current major versions (vite ^6, tailwindcss ^4, react ^18).
+- vite.config.js uses @vitejs/plugin-react and @tailwindcss/vite, and proxies "/api" to http://localhost:8787.
+- src/main.jsx: React 18 createRoot; PrimeReactProvider from @primereact/core with Aura from @primeuix/themes/aura; import @primeicons/react.
+- src/index.css: start with @import "tailwindcss"; then an @theme block for captured palette/fonts as CSS variables. Tailwind utilities complement PrimeReact — do not replace PrimeReact widgets with unstyled Tailwind components.
+- mock/server.js: dependency-free Node http on port 8787; serve captured API paths from mock/db.json with CORS; fall back to {"ok":true}.
+- **Do not** generate backend/production server code — mocks only.
+- README.md: list unverified/partial workflow steps under "## Unverified workflows".
+- Fully responsive. No TypeScript in output. No lorem ipsum. Never leave TODOs. Stay compact (arrays + .map() for repeated UI).
 
 ${FILE_FORMAT_INSTRUCTIONS}`;
 
@@ -79,36 +86,47 @@ export function buildHybridPrompt(name: string, ctx: HybridGenerationContext, sa
     `Entry URL (context): ${ctx.entryUrl}`,
     `Baseline capture URL: ${ctx.baseline.url}`,
     `Title: ${ctx.baseline.title}`,
+    `Description: ${ctx.baseline.description}`,
     ctx.runCommand ? `Dev server command: ${ctx.runCommand}` : "",
     ctx.runReasons.length ? `Run plan reasons:\n- ${ctx.runReasons.join("\n- ")}` : "",
     sanitize
       ? "SANITIZE: replace brand names with neutral placeholders; keep layout and interaction structure."
       : "",
     "",
+    "## Output stack (mandatory)",
+    `Stack: ${HYBRID_OUTPUT_STACK_LABEL}`,
+    HYBRID_UI_STACK_POLICY,
+    "",
     "## InteractionMap (controls excerpt)",
-    `Source paths: ${ctx.interactionMap.sourcePaths.join(", ") || "(default globs)"}`,
+    `Source paths (analysis only — generate fresh JSX, do not copy .tsx verbatim): ${ctx.interactionMap.sourcePaths.join(", ") || "(default globs)"}`,
     `Unresolved: ${ctx.interactionMap.unresolved.length}`,
     controls || "(no controls)",
     "",
     "## WorkflowTrace (observed steps)",
     steps || "(empty trace)",
     "",
-    "## Design tokens (baseline)",
+    "## Design tokens (baseline, most-used first)",
     `fonts: ${ctx.baseline.tokens.fonts.join(" | ")}`,
-    `colors: ${ctx.baseline.tokens.colors.join(" | ")}`,
-    `outline: ${ctx.baseline.outline.slice(0, 30).join(" | ")}`,
+    `text colours: ${ctx.baseline.tokens.colors.join(" | ")}`,
+    `backgrounds: ${ctx.baseline.tokens.backgrounds.join(" | ")}`,
+    `border radii: ${ctx.baseline.tokens.radii.join(" | ")}`,
+    `font sizes: ${ctx.baseline.tokens.fontSizes.join(" | ")}`,
+    `content max-width: ${ctx.baseline.tokens.maxWidth ?? "none"}`,
+    "",
+    "## Semantic outline",
+    ctx.baseline.outline.slice(0, 40).join("\n"),
     "",
     "## Captured API bodies (serve from mock/db.json)",
     apis || "(no JSON bodies captured)",
     otherReqs ? "\n## Other XHR/fetch\n" + otherReqs : "",
     "",
-    "## Source excerpts (handler context)",
+    "## Source excerpts (handler context — inform behavior, not a file copy)",
     ctx.sourceExcerpts || "(no excerpts)",
     "",
     "## Baseline DOM excerpt",
     ctx.baseline.html.slice(0, 8000),
     "",
-    `Desktop screenshots attached: ${ctx.baseline.screenshotsDesktop.length}; mobile: ${ctx.baseline.screenshotsMobile.length}.`,
+    `Desktop screenshots attached: ${ctx.baseline.screenshotsDesktop.length}; mobile: ${ctx.baseline.screenshotsMobile.length}. Match layout using PrimeReact components with Tailwind spacing.`,
   ]
     .filter((l) => l !== "")
     .join("\n");
@@ -193,7 +211,7 @@ export async function generateHybridProject(
     : [];
 
   const text = await provider.complete({
-    system: SYSTEM,
+    system: HYBRID_GENERATION_SYSTEM,
     prompt,
     images,
     maxTokens: 128000,

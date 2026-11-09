@@ -1,14 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Provider } from "../ai/provider.js";
+import { HYBRID_OUTPUT_STACK_LABEL, HYBRID_UI_STACK_POLICY } from "../hybrid/stack-spec.js";
 import type { InteractionMap, WorkflowTrace } from "../hybrid/types.js";
 import type { Capture } from "./capture.js";
 import {
   buildHybridPrompt,
   buildWorkflowsJson,
   generateHybridProject,
+  HYBRID_GENERATION_SYSTEM,
   HYBRID_VERIFY_SCRIPT,
 } from "./generate-hybrid.js";
+
+function assertPrimeReactBeforeTailwind(text: string): void {
+  const primeIdx = text.indexOf("PrimeReact");
+  const tailwindIdx = text.indexOf("Tailwind");
+  assert.ok(primeIdx >= 0, "expected PrimeReact in stack text");
+  assert.ok(tailwindIdx >= 0, "expected Tailwind in stack text");
+  assert.ok(primeIdx < tailwindIdx, "PrimeReact must appear before Tailwind in stack wording");
+}
 
 const minimalCapture = (): Capture => ({
   url: "http://127.0.0.1:5173/",
@@ -52,7 +62,18 @@ const trace: WorkflowTrace = {
   ],
 };
 
-test("buildHybridPrompt includes map, trace, and run provenance", () => {
+test("HYBRID_GENERATION_SYSTEM is PrimeReact-first then Tailwind", () => {
+  assertPrimeReactBeforeTailwind(HYBRID_GENERATION_SYSTEM);
+  assert.match(HYBRID_GENERATION_SYSTEM, /PrimeReact-first/);
+  assert.match(HYBRID_GENERATION_SYSTEM, /Tailwind second/);
+  assert.match(HYBRID_GENERATION_SYSTEM, /@primereact\/core/);
+  assert.match(HYBRID_GENERATION_SYSTEM, /@primeuix\/themes/);
+  assert.match(HYBRID_GENERATION_SYSTEM, /@import "tailwindcss"/);
+  assert.match(HYBRID_GENERATION_SYSTEM, /PrimeReactProvider/);
+  assert.doesNotMatch(HYBRID_GENERATION_SYSTEM, /No external UI libraries/);
+});
+
+test("buildHybridPrompt includes map, trace, stack policy, and run provenance", () => {
   const prompt = buildHybridPrompt(
     "demo-hybrid",
     {
@@ -70,6 +91,10 @@ test("buildHybridPrompt includes map, trace, and run provenance", () => {
   assert.match(prompt, /WorkflowTrace/);
   assert.match(prompt, /npm run dev/);
   assert.match(prompt, /click:About/);
+  assert.match(prompt, /Output stack \(mandatory\)/);
+  assert.match(prompt, new RegExp(HYBRID_OUTPUT_STACK_LABEL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.ok(prompt.includes(HYBRID_UI_STACK_POLICY));
+  assertPrimeReactBeforeTailwind(prompt);
 });
 
 test("buildWorkflowsJson serializes trace steps", () => {
@@ -78,17 +103,21 @@ test("buildWorkflowsJson serializes trace steps", () => {
 });
 
 test("generateHybridProject parses model blocks and injects workflow artifacts", async () => {
+  let capturedSystem = "";
   const fake: Provider = {
     name: "test",
     model: "noop",
     supportsImages: false,
-    complete: async () =>
-      `=== FILE: package.json ===
-{"name":"x"}
+    complete: async (req) => {
+      capturedSystem = req.system;
+      return `=== FILE: package.json ===
+{"name":"x","dependencies":{"primereact":"^10","react":"^18","react-dom":"^18"},"devDependencies":{"tailwindcss":"^4","vite":"^6"}}
 === END FILE ===
 === FILE: src/App.jsx ===
-export default () => null;
-=== END FILE ===`,
+import { Button } from "primereact/button";
+export default () => <Button className="mt-4" label="Hi" />;
+=== END FILE ===`;
+    },
   };
 
   const files = await generateHybridProject(
@@ -104,6 +133,9 @@ export default () => null;
     },
     { sanitize: false },
   );
+
+  assertPrimeReactBeforeTailwind(capturedSystem);
+  assert.match(capturedSystem, /PrimeReact-first/);
 
   assert.ok(files.has("package.json"));
   assert.ok(files.has("src/App.jsx"));

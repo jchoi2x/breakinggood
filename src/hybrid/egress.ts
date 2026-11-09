@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import type { Capture } from "../site/capture.js";
+import { HYBRID_OUTPUT_STACK_ID } from "./stack-spec.js";
 import type { EgressManifest, EgressSourceFile, InteractionMap, WorkflowTrace } from "./types.js";
 
 const MAX_SOURCE_FILES = 50;
@@ -54,6 +55,7 @@ export function buildEgressManifest(input: BuildEgressManifestInput): EgressMani
   return {
     version: 1,
     allowEgress: input.allowEgress,
+    outputStack: HYBRID_OUTPUT_STACK_ID,
     sourceFiles,
     imageCount,
     networkBodyBytes,

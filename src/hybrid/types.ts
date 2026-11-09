@@ -70,6 +70,8 @@ export interface EgressSourceFile {
 export interface EgressManifest {
   version: 1;
   allowEgress: boolean;
+  /** Generated frontend scaffold (e.g. vite-react-primereact-tailwind-v4). */
+  outputStack: string;
   sourceFiles: EgressSourceFile[];
   imageCount: number;
   networkBodyBytes: number;

@@ -83,4 +83,5 @@ test("buildEgressManifest counts images and network bytes", () => {
   assert.equal(manifest.imageCount, 3);
   assert.equal(manifest.networkBodyBytes, Buffer.byteLength('{"ok":1}', "utf8"));
   assert.equal(manifest.allowEgress, true);
+  assert.equal(manifest.outputStack, "vite-react-primereact-tailwind-v4");
 });
