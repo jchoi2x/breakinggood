@@ -75,7 +75,7 @@ async function runHybridGeneration(
 
   const sourceExcerpts = readSourceExcerpts(dir, interactionMap);
   const manifest = buildEgressManifest({
-    allowEgress: true,
+    allowEgress: Boolean(opts.allowEgress),
     repoRoot: dir,
     interactionMap,
     baseline,

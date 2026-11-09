@@ -28,7 +28,8 @@ Produce a complete, runnable **frontend-only** Vite + React 18 + PrimeReact + Ta
 
 Hard requirements:
 - Files to output: package.json, index.html, vite.config.js, src/main.jsx, src/index.css, src/App.jsx, components under src/components/, mock/db.json, mock/server.js, README.md.
-- package.json: "type": "module", scripts: {"dev": "concurrently \\"vite\\" \\"node mock/server.js\\"", "build": "vite build", "preview": "vite preview", "mock": "node mock/server.js"}; dependencies react, react-dom, primereact, primeicons; devDependencies vite, @vitejs/plugin-react, tailwindcss, @tailwindcss/vite, concurrently.
+- package.json: "type": "module", scripts: {"dev": "concurrently \\"vite\\" \\"node mock/server.js\\"", "build": "vite build", "preview": "vite preview", "mock": "node mock/server.js"}; dependencies react, react-dom, @primereact/ui, @primereact/core, primereact ^11, @primeuix/themes, @primeicons/react; devDependencies vite, @vitejs/plugin-react, tailwindcss, @tailwindcss/vite, concurrently.
+- src/main.jsx: PrimeReactProvider from @primereact/core with Aura from @primeuix/themes/aura; Tailwind via @import "tailwindcss" in index.css.
 - vite.config.js proxies "/api" to http://localhost:8787.
 - mock/server.js serves captured local API traffic from mock/db.json (dependency-free Node http on port 8787).
 - **Do not** generate backend/server production code — mocks only.
@@ -156,7 +157,7 @@ try {
     }
     try {
       const loc = step.selector.startsWith("text=")
-        ? page.getByText(step.selector.slice(5), { exact: true })
+        ? page.getByText(JSON.parse(step.selector.slice("text=".length)), { exact: true })
         : page.locator(step.selector);
       await loc.first().click({ timeout: 5000 });
       await page.waitForTimeout(400);
